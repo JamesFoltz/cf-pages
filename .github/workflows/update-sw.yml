@@ -6,14 +6,14 @@ on:
       - main
 
 jobs:
-  update-version:
+  update-service-worker:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Generate version from commit hash
+      - name: Generate new cache version
         run: |
           VERSION=$(git rev-parse --short HEAD)
           SW_FILE="sw.js"
