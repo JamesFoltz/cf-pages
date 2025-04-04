@@ -1,4 +1,5 @@
-const cacheName = "offline-cache-v3";
+const cacheVersion = "GIT_COMMIT_HASH";
+const cacheName = `offline-cache-${cacheVersion}`;
 const cacheUrls = ["index.html", "cat.jpeg"];
 
 // Installing the Service Worker
