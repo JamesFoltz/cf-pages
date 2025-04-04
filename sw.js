@@ -1,15 +1,38 @@
-const cacheVersion = "GIT_COMMIT_HASH";
+// Automatically updated version (replace with dynamic versioning logic)
+const cacheVersion = "v1"; // Replace this dynamically during build or commit
 const cacheName = `offline-cache-${cacheVersion}`;
-const cacheUrls = ["index.html", "cat.jpeg"];
+const cacheUrls = ["index.html", "cat.jpeg", "styles.css", "app.js"];
 
 // Installing the Service Worker
 self.addEventListener("install", async (event) => {
-  try {
-    const cache = await caches.open(cacheName);
-    await cache.addAll(cacheUrls);
-  } catch (error) {
-    console.error("Service Worker installation failed:", error);
-  }
+  console.log(`Service Worker installing. Cache version: ${cacheVersion}`);
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(cacheName);
+      await cache.addAll(cacheUrls);
+    })()
+  );
+  self.skipWaiting(); // Activate immediately
+});
+
+// Activating the Service Worker
+self.addEventListener("activate", (event) => {
+  console.log(`Service Worker activating. Cache version: ${cacheVersion}`);
+  event.waitUntil(
+    (async () => {
+      const cacheKeys = await caches.keys();
+      // Delete old caches not matching the current version
+      await Promise.all(
+        cacheKeys.map((key) => {
+          if (key !== cacheName) {
+            console.log(`Deleting old cache: ${key}`);
+            return caches.delete(key);
+          }
+        })
+      );
+    })()
+  );
+  self.clients.claim(); // Take control of all pages immediately
 });
 
 // Fetching resources
@@ -17,36 +40,24 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     (async () => {
       const cache = await caches.open(cacheName);
-
       try {
         const cachedResponse = await cache.match(event.request);
         if (cachedResponse) {
-          console.log("cachedResponse: ", event.request.url);
+          console.log(`Serving from cache: ${event.request.url}`);
           return cachedResponse;
         }
 
         const fetchResponse = await fetch(event.request);
         if (fetchResponse) {
-          console.log("fetchResponse: ", event.request.url);
+          console.log(`Fetching and caching: ${event.request.url}`);
           await cache.put(event.request, fetchResponse.clone());
           return fetchResponse;
         }
       } catch (error) {
-        console.log("Fetch failed: ", error);
-        const cachedResponse = await cache.match("index.html");
-        return cachedResponse;
+        console.error(`Fetch failed: ${error}`);
+        // Fallback to cached index.html for offline support
+        return await cache.match("index.html");
       }
     })()
-  );
-});
-
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys => 
-      Promise.all(
-        keys.filter(key => key !== cacheName)
-            .map(key => caches.delete(key))
-      )
-    )
   );
 });
